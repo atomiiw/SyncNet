@@ -1,4 +1,5 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+tf.disable_v2_behavior()  # Ensure TF1 compatibility
 import numpy as np
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
@@ -42,16 +43,37 @@ def shape(tensor):
     return tuple([d.value for d in tensor.get_shape()])
 
 
+# def fully_connected_layer(in_tensor, out_units):
+#     """
+#     Add a fully connected layer to the default graph, taking as input `in_tensor`, and
+#     creating a hidden layer of `out_units` neurons. This should be done in a new variable
+#     scope. Creates variables W and b, and computes activation_function(in * W + b).
+#     """
+#     _, num_features = shape(in_tensor)
+#     weights = tf.compat.v1.get_variable(name = "weights", shape = [num_features, out_units], initializer = tf.truncated_normal_initializer(stddev=0.1))
+#     biases = tf.compat.v1.get_variable( name = "biases", shape = [out_units], initializer=tf.constant_initializer(0.1))
+#     return tf.matmul(in_tensor, weights) + biases
+
 def fully_connected_layer(in_tensor, out_units):
     """
-    Add a fully connected layer to the default graph, taking as input `in_tensor`, and
-    creating a hidden layer of `out_units` neurons. This should be done in a new variable
-    scope. Creates variables W and b, and computes activation_function(in * W + b).
+    Creates a fully connected layer with automatic variable reuse.
     """
-    _, num_features = shape(in_tensor)
-    weights = tf.get_variable(name = "weights", shape = [num_features, out_units], initializer = tf.truncated_normal_initializer(stddev=0.1))
-    biases = tf.get_variable( name = "biases", shape = [out_units], initializer=tf.constant_initializer(0.1))
-    return tf.matmul(in_tensor, weights) + biases
+    _, num_features = in_tensor.get_shape().as_list()
+
+    # FIX: Provide a valid name_or_scope instead of None
+    with tf.variable_scope("fc_layer", reuse=tf.AUTO_REUSE):
+        weights = tf.get_variable(
+            name="weights",
+            shape=[num_features, out_units],
+            initializer=tf.truncated_normal_initializer(stddev=0.1)
+        )
+        biases = tf.get_variable(
+            name="biases",
+            shape=[out_units],
+            initializer=tf.constant_initializer(0.1)
+        )
+
+        return tf.matmul(in_tensor, weights) + biases
 
 
 def conv2d(in_tensor, filter_shape, out_channels):
@@ -183,7 +205,7 @@ def description(sources, targets):
 def channel_dropout(X, p):
     if p == 0:
         return X
-    mask = tf.random_uniform(shape = [tf.shape(X)[0], tf.shape(X)[2]])
+    mask = tf.random.uniform(shape = [tf.shape(X)[0], tf.shape(X)[2]])
     mask = mask + 1 - p
     mask = tf.floor(mask)
     dropout = tf.expand_dims(mask,axis = 1) * X/(1-p)

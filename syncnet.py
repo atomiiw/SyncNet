@@ -38,7 +38,18 @@ graph = tf.get_default_graph()
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4) 
 
 model = SyncNetModel(options)
+
 sess =  tf.Session(graph = graph, config=tf.ConfigProto(gpu_options=gpu_options)) 
+
+# gpus = tf.config.experimental.list_physical_devices('GPU')
+# if gpus:
+#     try:
+#         for gpu in gpus:
+#             tf.config.experimental.set_memory_growth(gpu, True)
+#         print("GPU memory growth enabled.")
+#     except RuntimeError as e:
+#         print(e)
+
 tf.global_variables_initializer().run(session = sess)
 gen_batches = utils.batch_generator([train, labtrain], options['batch_size'])
 
@@ -53,7 +64,7 @@ for i in range(1, num_steps + 1):
                  feed_dict={model.X: X, model.y: y, model.lr: lr})
     _ = sess.run(model.beta_op, feed_dict = {})
     if i % 100 == 0:
-        print 'iter %d  loss: %f   p_acc: %f  lr: %f' % \
+        print ('iter %d  loss: %f   p_acc: %f  lr: %f') % \
                 (i, batch_loss, y_acc, lr)
         
      
@@ -64,7 +75,7 @@ for i in range(1, num_steps + 1):
         
         test_pred, test_acc = sess.run([model.y_pred, model.y_acc], feed_dict = {model.X: test, model.y:labtest})
         
-        print 'train: %.4f  valid: %.4f  test: %.4f ' % \
+        print ('train: %.4f  valid: %.4f  test: %.4f ') % \
                 (train_acc, val_acc, test_acc)
 params = utils.get_params(sess)
 np.save('./result.npy',params)
